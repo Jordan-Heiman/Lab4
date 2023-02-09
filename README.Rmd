@@ -42,7 +42,8 @@ ipak <- function(pkg){
 }
 
 #load or install these packages:
-packages <- c("tidyverse", "adehabitatHS", "adehabitatHR", "mapview", "tmap", "sf","terra", "here","ggplot2","colorRamps", "stars")
+packages <- c("tidyverse", "adehabitatHS", "adehabitatHR", "mapview", "tmap", "sf", 
+              "terra", "here", "ggplot2", "colorRamps", "stars")
 
 #run function to install packages
 ipak(packages)
@@ -54,7 +55,7 @@ In the first activity we learn how to import an ARCGIS Raster file in a GRID fil
 
 For background, today we are going to do categorical resource selection using a typical kind of landcover model. Note that I am very specific here in my language - the use of the term landcover - for good reason.  Most wildlife ecologists have a weak understanding of where various landcover data come from, the history of the field of landcover classification, or how or where its assumptions may affect wildlife habitat modeling. 
 
-Most modern day 'vegetation classification maps' are actually not vegetation, but are derived based on remotely-sensed data from satellites. The most common is the LANDSAT series 1 - 7 30meter satellite data products.  This is why it is more correct to call these landcover, not vegetation, classification systems because they are based on surface reflectance values in the visible and non-visible light spectra, which include non-vegetated surfaces such as urban areas, pavement, rocks, ice, lakes, clouds ( a big problem), etc. Common examples that many of us might use here in Montana or the lower 48 are LANDFIRE, National Landcover Classification Database (NLCD), etc. 
+Most modern day 'vegetation classification maps' are actually not vegetation, but are derived based on remotely-sensed data from satellites. The most common is the LANDSAT series 1 - 7 30meter satellite data products.  This is why it is more correct to call these landcover, not vegetation, classification systems because they are based on surface reflectance values in the visible and non-visible light spectra, which include non-vegetated surfaces such as urban areas, pavement, rocks, ice, lakes, clouds (a big problem), etc. Common examples that many of us might use here in Montana or the lower 48 are LANDFIRE, National Landcover Classification Database (NLCD), etc. 
 
 For background, I highly recommend every ecologist who uses such remotely-sensed landcover-type data become familiar with how they are generated so that you know when and how to use them wisely.  I highly recommend this book for a gentle introduction to the field Ecological :
 [Remote Sensing and GIS for Ecologists using Open Source Software](http://book.ecosens.org/content/)
@@ -72,24 +73,27 @@ McDermid, G.J., Franklin, S.E. & LeDrew, E.F. (2005) Remote sensing for large-ar
 Wegmann, M., Leutner, B. & Dech, S. (2016) Remote Sensing and GIS for Ecologists using Open Source Software, Pelagic Publishers, Exeter, UK.
 
 ## Loading and Manipulating Landcover Data
-```{r warning=FALSE}
-landcover<-rast(here::here("Data","landcover"))
-image(landcover, col=rainbow(16))
+```{r warning = FALSE}
+landcover <- rast(here("Data","landcover"))
+image(landcover, col = rainbow(16))
 landcover
 cats(landcover)
 head(values(landcover))
 levels(landcover)
 
-##Note we do not have access to the attributes table of HABITATTYPE -- so we have to create one, here we create the legend of HABITATTYPE to ID using previous version of lab 4.
+# Note we do not have access to the attributes table of HABITATTYPE -- so we have 
+# to create one, here we create the legend of HABITATTYPE to ID using previous 
+# version of lab 4.
 
 ID <- 0:16
-HABITATTYPE <- c("","Open Conifer","Moderate Conifer","Closed Conifer", "Deciduous", "Mixed Forest",
-                  "Regeneration","Herbaceous","Shrub","Water","Rock-Ice","Cloud","Burn-Forest",
-                  "Burn-Grassland", "Burn-Shrub","Alpine Herb","Alpine Shrub")
+HABITATTYPE <- c("", "Open Conifer", "Moderate Conifer", "Closed Conifer", "Deciduous",
+                 "Mixed Forest", "Regeneration", "Herbaceous", "Shrub", "Water",
+                 "Rock-Ice","Cloud", "Burn-Forest", "Burn-Grassland", "Burn-Shrub",
+                 "Alpine Herb", "Alpine Shrub")
 values <- as.data.frame(ID) %>% 
   add_column(HABITATTYPE)
 
-#Use the levels function from terra to set the associated HABITAT TYPE attributes
+# Use the levels function from terra to set the associated HABITAT TYPE attributes
 
 levels(landcover) <- values
 cats(landcover)
@@ -100,8 +104,8 @@ Note that this 'legend' is what we want to keep track of as we transform the dat
 ```{r, warning = FALSE}
 landcover
 
-writeRaster(landcover, here::here("Output","landcover16.tif"), overwrite = TRUE)
-landcover16 <- rast(here::here("Output","landcover16.tif")) # bringing it back in
+writeRaster(landcover, here("Output", "landcover16.tif"), overwrite = TRUE)
+landcover16 <- rast(here("Output", "landcover16.tif")) # bringing it back in
 landcover16
 
 cats(landcover16)
@@ -116,29 +120,43 @@ Note the presence of clouds, rocks, ice, water - non vegetated categories. This 
 
 First, lets explore some graphing options to overlay some of our previous wolf datasets over this landcover classification, and experiment with changing the colors of the landcover categories. 
 ```{r}
-wolfyht<-st_read("Data/wolfyht.shp")
-plot(landcover16, col=rainbow(16))
-plot(wolfyht, add=TRUE, type="p", color = "gray25", pch=19, cex = 0.75)
+wolfyht <- st_read("Data/wolfyht.shp")
+plot(landcover16, col = rainbow(16))
+plot(wolfyht,
+     add = TRUE,
+     type = "p",
+     color = "gray25",
+     pch = 19, 
+     cex = 0.75)
 
-#blanking out mapview for creation of github document
-#mapview(landcover16, zcol = "HABITATTYPE") + wolfyht 
+## blanking out mapview for creation of github document
+# mapview(landcover16, zcol = "HABITATTYPE") + wolfyht 
 
-#tmap option of interactive maps
-#tmap_mode("view")
-#landcover_map <- tm_shape(landcover16) + tm_raster()
-#landcover_map + tm_shape(wolfyht) + tm_sf()
+## tmap option of interactive maps
+# tmap_mode("view")
+# landcover_map <- tm_shape(landcover16) + tm_raster()
+# landcover_map + tm_shape(wolfyht) + tm_sf()
 ```
 Note that this extent is different than below.  But now, lets make a second plot zooming into a specific area of the Red Deer pack showing one way how to 'clip' the extent to a zoomed in area. 
 ```{r}
 ## lets make a second plot zooming into a specific area of the Red Deer pack
 yht.raster <- rast()
-ext(yht.raster) <- c(xmin=570000, xmax=600000, ymin=5720000, ymax=5740000) 	
-plot(landcover16, col=rainbow(16), ext=yht.raster)
-plot(wolfyht, add=TRUE, type="p", color = "gray25", pch=19)
+ext(yht.raster) <- c(xmin = 570000,
+                     xmax = 600000, 
+                     ymin = 5720000, 
+                     ymax = 5740000) 	
+plot(landcover16, 
+     col = rainbow(16),
+     ext = yht.raster)
+plot(wolfyht,
+     add = TRUE, 
+     type = "p",
+     color = "gray25",
+     pch = 19)
 
 ```
 
-Next, IMAGINE we needed to resample the landcover16 model using the nerest neighbor method to have the same raster extent as our 'mask'. This will take several minutes of system time.  Note here we are resampling to nearest neighbor to preserve the integer value - if you do this using the bilinear resampling you get double format numbers (i.e., not integer values).  Learn more about the format of resampling in resample using:
+Next, IMAGINE we needed to resample the landcover16 model using the nearest neighbor method to have the same raster extent as our 'mask'. This will take several minutes of system time.  Note here we are resampling to nearest neighbor to preserve the integer value - if you do this using the bilinear resampling you get double format numbers (i.e., not integer values).  Learn more about the format of resampling in resample using:
 ```
 ?resample
 ```
@@ -147,8 +165,29 @@ which actually isn't that helpful. A more helpful explanation and demonstration 
 
 Resampling Landcover. 
 ```{r, eval = FALSE}
-landcover2<-resample(landcover16, mask.raster, method="ngb") 
-extent(landcover2)
+## Currently using terra package -- not sure with STARS yet -- SMS
+# Create a mask raster to use as a template for converting shape file data to rasters
+# Create an empty raster
+mask.raster <- rast()
+
+# Set extent of that raster to cover all layers that will be included
+ext(mask.raster) <- c(xmin = 443680.6, 
+                      xmax = 650430.4, 
+                      ymin = 5618416, 
+                      ymax = 5789236) 	
+
+# Set the resolution to 30 m (use larger to speed up processing if needed)
+res(mask.raster) <- 30
+
+# Match projection to elc_habitat shapefile
+crs(mask.raster) <- "+proj=utm +zone=11 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+
+# Set all values of mask.raster to zero
+mask.raster[] <- 0
+landcover2 <- resample(landcover16, 
+                       mask.raster,
+                       method = "near") 
+ext(landcover2)
 ```
 Now the landcovers would be the same across your mask.raster.  
 
@@ -164,10 +203,18 @@ summary(wolfkde)
 
 Now we can make a single nice plot of the X and Y locations by Used by Pack, where used locations are a bright blue, and available locations are dark blue. 
 ```{r}
-ggplot(wolfkde, aes(x=EASTING, y = NORTHING, color=usedFactor)) + geom_point() + stat_density2d() + facet_grid(pack ~ ., scales="free")
+ggplot(wolfkde, 
+       aes(x = EASTING, y = NORTHING, color = usedFactor)) +
+  geom_point() +
+  stat_density2d() +
+  facet_grid(pack ~ ., scales = "free")
 
 # or, Facetting by Used
-ggplot(wolfkde, aes(x=EASTING, y = NORTHING)) + geom_point() + stat_density2d() + facet_grid(pack ~ usedFactor, scales="free")
+ggplot(wolfkde,  
+       aes(x = EASTING, y = NORTHING)) +
+  geom_point() + 
+  stat_density2d() +
+  facet_grid(pack ~ usedFactor, scales = "free")
 
 ```
 
@@ -175,23 +222,52 @@ ggplot(wolfkde, aes(x=EASTING, y = NORTHING)) + geom_point() + stat_density2d() 
 These are a repeat of the commands from lab 3, but here I will show you how to extract covariate tables from multiple models. Note in the script I also did this for Bv and rd wolf packs. We will just keep these handy for later, as today's focus is on categorical analysis of landcover. But, it might be handy to relate certain landcover types with certain prey (e.g., alpine and sheep/goats) for discussion. 
 ```{r}
 ### First for all packs
-elev <- glm(used ~ Elevation2, family=binomial(logit), data=wolfkde)
-distacc <- glm(used ~ DistFromHumanAccess2, family=binomial(logit), data=wolfkde)
-disthha <- glm(used ~ DistFromHighHumanAccess2, family=binomial(logit), data=wolfkde)
-sheep <- glm(used ~ sheep_w2, family=binomial(logit), data=wolfkde)
-goat <- glm(used ~ goat_w2, family=binomial(logit), data=wolfkde)
-elk <- glm(used ~ elk_w2, family=binomial(logit), data=wolfkde)
-moose <- glm(used ~ moose_w2, family=binomial(logit), data=wolfkde)
-deer <- glm(used ~ deer_w2, family=binomial(logit), data=wolfkde)
+elev <- glm(used ~ Elevation2, 
+            family = binomial(logit),
+            data = wolfkde)
+distacc <- glm(used ~ DistFromHumanAccess2,
+               family = binomial(logit),
+               data = wolfkde)
+disthha <- glm(used ~ DistFromHighHumanAccess2,
+               family = binomial(logit),
+               data = wolfkde)
+sheep <- glm(used ~ sheep_w2,
+             family = binomial(logit),
+             data = wolfkde)
+goat <- glm(used ~ goat_w2,
+            family = binomial(logit), 
+            data = wolfkde)
+elk <- glm(used ~ elk_w2,
+           family = binomial(logit),
+           data = wolfkde)
+moose <- glm(used ~ moose_w2,
+             family = binomial(logit), 
+             data = wolfkde)
+deer <- glm(used ~ deer_w2,
+            family = binomial(logit),
+            data = wolfkde)
 ```
 
 Creating tables of B, SE. First grab all of the estimates and standard errors
 ```{r}
-models = rbind(summary(elev)$coefficients[,1:2], summary(disthha)$coefficients[,1:2], summary(distacc)$coefficients[,1:2], summary(sheep)$coefficients[,1:2], summary(goat)$coefficients[,1:2], summary(elk)$coefficients[,1:2], summary(moose)$coefficients[,1:2], summary(deer)$coefficients[,1:2])
+models <- rbind(summary(elev)$coefficients[, 1:2], 
+                summary(disthha)$coefficients[, 1:2],
+                summary(distacc)$coefficients[, 1:2],
+                summary(sheep)$coefficients[, 1:2],
+                summary(goat)$coefficients[, 1:2], 
+                summary(elk)$coefficients[, 1:2],
+                summary(moose)$coefficients[, 1:2],
+                summary(deer)$coefficients[, 1:2])
 # Name your models
-modelnames = c("elev","disthha", "distacc", "sheep", "goat", "elk", "moose", "deer")
+modelnames <- c("elev", "disthha", "distacc", "sheep", "goat", "elk", "moose", "deer")
+
 # Now put all of your estimates in a pretty table with names that you'll remember!
-estimates.all = matrix(models, nrow=2*length(modelnames), ncol=2, dimnames = list(paste(rep(modelnames, each=2),c("intercept", "coefficient")), c("B", "SE")))
+estimates.all <- matrix(models,
+                        nrow = 2*length(modelnames), 
+                        ncol = 2, 
+                        dimnames = list(paste(rep(modelnames, each = 2),
+                                              c("intercept", "coefficient")),
+                                        c("B", "SE")))
 estimates.all
 plot(estimates.all)
 ```
@@ -228,29 +304,34 @@ Alternatively, redo the analyses from Lab 3 with the set.seed(11) code in the La
 Lets this graph shows the differences in the proportions between used and available for both packs for landcover type
 ```{r}
 table(wolfkde$habitatType, wolfkde$usedFactor)
-ggplot(wolfkde, aes(x=landcover16, y=..density.., fill = used)) +geom_histogram(binwidth = 1) + facet_grid(used~.)
+ggplot(wolfkde, 
+       aes(x = landcover16, y = after_stat(density), fill = used)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_grid(used ~ .)
 
 ```
 
 What should we do about the NA or Clouds? We will have to discuss what to do with NA's and Cloud? For now, we will decide to remove clouds as missing data
 ```{r}
 wolfkde2 <- wolfkde[wolfkde$landcover16 != 11, ]
-wolfkde3 <-wolfkde2[wolfkde2$landcover16 != 0, ]
+wolfkde3 <- wolfkde2[wolfkde2$landcover16 != 0, ]
 table(wolfkde3$habitatType, wolfkde3$usedFactor)
 ```
 See, we have removed clouds and NA's
 
 Next we will create a 'legend' file (names.m) to help us keep track of contrasts
 ```{r}
-names.m = data.frame(unique(wolfkde3$landcover16),unique(wolfkde3$habitatType))
+names.m <- data.frame(unique(wolfkde3$landcover16), 
+                     unique(wolfkde3$habitatType))
 # Now I put it order
-names.m = names.m[order(names.m)[1:15],]
+names.m <- names.m[order(names.m)[1:15], ]
 names.m
 ```
 
 Define a factor variable, landcov.f, # the sorted table makes defining the names of your factor level easy!
 ```{r}
-wolfkde3$landcov.f = factor(wolfkde3$landcover16,labels = names.m$unique.wolfkde3.habitatType)
+wolfkde3$landcov.f <- factor(wolfkde3$landcover16,
+                             labels = names.m$unique.wolfkde3.habitatType)
 ```
 
 Note that there are many alternative ways of defining your landcover/habitattype as a factor. This method seemed most explicit in terms of defining the design matrix for landcover categories. 
@@ -287,9 +368,9 @@ landcovSelection2 <- as.data.frame.matrix(landcovSelection)
 colnames(landcovSelection2)[1:2] <- c("avail","used")
 ## Calculate Proportional Availability
 sum(landcovSelection2$used)
-landcovSelection2$pUse <- landcovSelection2$used /413
+landcovSelection2$pUse <- landcovSelection2$used /413 # sum(landcovSelection2$used) = 413
 sum(landcovSelection2$avail)
-landcovSelection2$pAvail <- landcovSelection2$avail /1996 # note 2000 because of censored cloud and NA's. 
+landcovSelection2$pAvail <- landcovSelection2$avail /1996 # note 2000 because of censored cloud and NA's.; sum(landcovSelection2$avail) = 1996
 landcovSelection2
 ```
 
@@ -318,11 +399,17 @@ Next we take the natural logarithm, ln() which in R is represented by log()
 landcovSelection2$lnSelection <- log(landcovSelection2$selection)
 
 ## Lets make a new column of habitatType
-landcovSelection2$landcoverType <- c("Alpine Herb", "Alpine Shrub", "Burn-Forest", "Burn-Grassland", "Burn-Shrub", "Closed Conifer", "Deciduous", "Herbaceous", "Mixed", "Moderate Conifer" ,"Open Conifer", "Regen", "Rock-Ice", "Shrub", "Water")
+landcovSelection2$landcoverType <- c("Alpine Herb", "Alpine Shrub", "Burn-Forest", 
+                                     "Burn-Grassland", "Burn-Shrub", "Closed Conifer",
+                                     "Deciduous", "Herbaceous", "Mixed", 
+                                     "Moderate Conifer" ,"Open Conifer", "Regen",
+                                     "Rock-Ice", "Shrub", "Water")
                           
 
 ## lets make a plot of the Manly (ln) Selectivity Coefficients
-ggplot(data=landcovSelection2, aes(x=landcoverType, y = lnSelection)) + geom_point(size=4) + theme(axis.text.x = element_text(angle = 90))
+ggplot(data = landcovSelection2, aes(x = landcoverType, y = lnSelection)) + 
+  geom_point(size = 4) + 
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
 This is a simple histogram of the Manly's ln-transformed selectivity coefficients as a function of landcover types. 
@@ -338,12 +425,15 @@ ggplot(landcovSelection2, aes(x=landcoverType, y = selection)) + geom_bar(stat="
 ## Ln-Selection Ratio
 ggplot(landcovSelection2, aes(x=landcoverType, y = lnSelection)) + 
 geom_bar(stat="Identity") + theme(axis.text.x = element_text(angle = 90))
+
+# Sites with 0 used points don't show because ln(0) is negative infinity
 ```
 
 What is the relationship between the selection ratio and the Ln-Selection Ratio?
 ```{r}
 ## Fancier ggplot
-ggplot(landcovSelection2, aes(x=selection, y = lnSelection)) + stat_smooth()
+ggplot(landcovSelection2, aes(x = selection, y = lnSelection)) + 
+  stat_smooth()
 ```
 **Discussion** why is the relationship between the selection ratio and the Ln selection ration curvilinear like this?
 
@@ -369,6 +459,8 @@ names(elk.avail) <- names(elk.used)
 ## Computation of wi
 (wiRatio <- widesI(elk.used, elk.avail, avknown=FALSE))
 
+#Bi is proportion -  Wi/sum(all Wi)
+
 ## plot the values of the selection ratios
 plot(wiRatio)
 ```
@@ -381,7 +473,7 @@ Lastly, we will learn about analyzing categorical variables using a new approach
 ```
 Even though this may seem 'new' if you have ever done ANOVA (a linear model) in R, you have used contrast matrices to do so.  
 ```{r}
-contrasts(wolfkde3$landcov.f) = contr.treatment(15) 
+contrasts(wolfkde3$landcov.f) <- contr.treatment(15) 
 ### To see the design matrix assigned
 attributes(wolfkde3$landcov.f)
 levels(wolfkde3$landcov.f)
@@ -399,20 +491,25 @@ Note how the design matrix has collapsed burn into one category? What other cate
 ## Incorrectly Treating Landcover as Continuous
 First, we will use Logistic regression incorrectly analyzing treating landcover16 as a continuous covariate
 ```{r}
-naive.nf = glm(used~landcover16,data=wolfkde3, family=binomial(logit))
+naive.nf <- glm(used~landcover16,
+                data = wolfkde3,
+                family = binomial(logit))
 summary(naive.nf)
 ```
 We have incorrectly treated landcover code (1 to 16) as a continuous covariate! We will analyze it correctly specifying in R that it is actually a categorical variable using the I~(landcover.f) Interaction expansion. But first, to see how this works, we will do it JUST for one landcover type, in this case, Open Conifer. 
 
 ```{r}
-oc = glm(used~I(landcov.f=="Open Conifer"),data=wolfkde3, family = binomial(logit))
+oc <- glm(used ~ I(landcov.f == "Open Conifer"), 
+          data = wolfkde3, 
+          family = binomial(logit))
 summary(oc)
+# intercept here is all the other habitat types besides open conifer
 #str(summary(oc))
 ```
 Now lets manually evaluate the predicted probability of a wolf used location occuring in Open Conifer
 ```{r}
 exp(-1.622+0.711*1)/(1+exp(-1.622+0.711*1))
-## now compare to the probability of wolf use in non-conifer landcovers ?
+## now compare to the probability of wolf use in non-open-conifer landcovers ?
 exp(-1.622+0.711*0)/(1+exp(-1.622+0.711*0))
 ```
 Discussion: How do these probabilities of use in open conifer, and of non-use of open conifer compare to our previous ratio's of used to available from the Manly selection ratio's?
@@ -426,12 +523,17 @@ landcovSelection2
 Next we will fit a model with 2 landcover types, manually, and then, three, and so on until we fit all landcover types using the interaction expansion with the contrast matrix. 
 ```{r}
 ## with just open conifer and burns
-ocb = glm(used~I(landcov.f=="Open Conifer")+I(landcov.f=="Burn"), data = wolfkde3, family = binomial(logit))
+ocb <- glm(used ~ I(landcov.f == "Open Conifer") + I(landcov.f == "Burn"),
+           data = wolfkde3, 
+           family = binomial(logit))
 summary(ocb)
 
 ### and with a few more variables
-conif = glm(used~I(landcov.f=="Open Conifer")+I(landcov.f=="Moderate Conifer")
-                  +I(landcov.f=="Closed Conifer"), data = wolfkde3, family = binomial(logit))
+conif <- glm(used ~ I(landcov.f == "Open Conifer") +
+              I(landcov.f == "Moderate Conifer") +
+              I(landcov.f == "Closed Conifer"),
+            data = wolfkde3,
+            family = binomial(logit))
 summary(conif)
 ```
 How do we interpret the intercept in each model? In model ocb the intercept is everything EXCEPT burns and open conifer.  Whereas  in the second, its everything except conifers.
@@ -439,7 +541,9 @@ How do we interpret the intercept in each model? In model ocb the intercept is e
 ##  Full model with all categories considered
 ```{r}
 # Full model
-full = glm(used~I(landcov.f), data=wolfkde3, family = binomial(logit))
+full <- glm(used ~ I(landcov.f), 
+            data = wolfkde3, 
+            family = binomial(logit))
 summary(full)
 ```
 Discussion: What is the intercept? Where did alpine (landcover 15) go? Why did landcover types 4 (decid), 6 (regen) and alpine- herb (12) 'blow' up? Go back and look at this table to undestand
@@ -448,16 +552,18 @@ table(wolfkde3$landcov.f, wolfkde3$usedFactor)
 ```
 They blew up because there was 0 used observed.  See what its trying to estimate?
 ```{r}
-exp(-0.974 - 15.592*1)/(1+exp(-0.974 - 15.592*1)) 
+exp(-0.91087 - 15.6552*1)/(1+exp(-0.91087 - 15.6552*1)) 
 ```
-these are the intercept -0.974 and coefficient for deciduous, -15.592.
+these are the intercept -0.91087 and coefficient for deciduous, -15.65520.
 
-Which is telling us that the probability of wolves using decid is essentially 0, but with no precision (look at the SE) because its unestimable. In this case, all landcover types without observations should technically be dropped and or reclasses into the intercept category. So our options are to delete these rows of data like NA's above or Cloud or more CORRECTLY, __reclass__ categories with zero observations as equivalent to the intercept. The latter is my recommendation, but lets wait to do that 'manually' below. 
+Which is telling us that the probability of wolves using deciduous is essentially 0, but with no precision (look at the SE) because its unestimatable. In this case, all landcover types without observations should technically be dropped and or reclasses into the intercept category. So our options are to delete these rows of data like NA's above or Cloud or more CORRECTLY, __reclass__ categories with zero observations as equivalent to the intercept. The latter is my recommendation, but lets wait to do that 'manually' below. 
 
 ## Models Without an Intercept
 This is a useful exercise to learn exactly what the intercept does in a model. Lets use the R notation to manually force no intercept in the model
 ```{r}
-full.NoInt = glm(used~I(landcov.f) -1, data=wolfkde3, family = binomial(logit))
+full.NoInt <- glm(used ~ I(landcov.f) - 1, 
+                  data = wolfkde3,
+                  family = binomial(logit))
 summary(full.NoInt)
 ```
 Note that the model with no intercept in it keeps Open Conifer.Compare these coefficients to the coefficients with the same model but with an intercept.
@@ -466,7 +572,20 @@ How do they differ??
 
 Now lets fit the model manually with each factor with open conifer as the intercept. Note that it is the same as the model full above and that the Intercept is now manually defined as Open Conifer
 ```{r}
-full.model = glm(used~I(landcov.f=="Moderate Conifer")+I(landcov.f=="Closed Conifer") +I(landcov.f=="Deciduous")+I(landcov.f=="Mixed")+I(landcov.f=="Herbaceous")+I(landcov.f=="Regen")+I(landcov.f=="Shrub")+I(landcov.f=="Water")+I(landcov.f=="Rock-Ice") +I(landcov.f=="Burn")+I(landcov.f=="Alpine Herb")+I(landcov.f=="Alpine Shrub"), data = wolfkde3, family = binomial(logit))
+full.model <- glm(used ~ I(landcov.f == "Moderate Conifer") +
+                    I(landcov.f == "Closed Conifer") + 
+                    I(landcov.f == "Deciduous") +
+                    I(landcov.f == "Mixed") +
+                    I(landcov.f == "Herbaceous") +
+                    I(landcov.f == "Regen") + 
+                    I(landcov.f == "Shrub") +
+                    I(landcov.f == "Water") + 
+                    I(landcov.f == "Rock-Ice") +
+                    I(landcov.f == "Burn") +
+                    I(landcov.f == "Alpine Herb") +
+                    I(landcov.f == "Alpine Shrub"),
+                  data = wolfkde3, 
+                  family = binomial(logit))
 summary(full.model)
 ```
 
@@ -476,11 +595,25 @@ Here, we will gain an appreciation for the influence of changing the reference c
 ## first recheck which # Rock-Ice is
 levels(wolfkde3$landcov.f) ## Ok it is # 10
 
-contrasts(wolfkde3$landcov.f) = contr.treatment(13, base = 10)
+contrasts(wolfkde3$landcov.f) <- contr.treatment(13, base = 10)
 attributes(wolfkde3$landcov.f)
 # and note that rock-ice now is 0. 
+# changes beta values because they are all now relative to rock-ice, absolute difference between each coefficient doesn't change
 
-rockintercept.model = glm(used~I(landcov.f=="Moderate Conifer") +I(landcov.f=="Closed Conifer") +I(landcov.f=="Deciduous")+I(landcov.f=="Mixed")+I(landcov.f=="Herbaceous") +I(landcov.f=="Regen")+I(landcov.f=="Shrub")+I(landcov.f=="Water")+I(landcov.f=="Open Conifer")+I(landcov.f=="Burn")+I(landcov.f=="Alpine Herb")+I(landcov.f=="Alpine Shrub"), data = wolfkde3, family = binomial(logit))
+rockintercept.model <- glm(used ~ I(landcov.f == "Moderate Conifer") +
+                             I(landcov.f == "Closed Conifer") +
+                             I(landcov.f == "Deciduous") +
+                             I(landcov.f == "Mixed") +
+                             I(landcov.f == "Herbaceous") +
+                             I(landcov.f == "Regen") +
+                             I(landcov.f == "Shrub") +
+                             I(landcov.f == "Water") +
+                             I(landcov.f == "Open Conifer") +
+                             I(landcov.f == "Burn") +
+                             I(landcov.f == "Alpine Herb") +
+                             I(landcov.f == "Alpine Shrub"), 
+                           data = wolfkde3, 
+                           family = binomial(logit))
 summary(rockintercept.model)
 ```
 _Discussion:_Now compare coefficients from each model with open conifer vs. Rock and Ice as the intercept models? What has changed? For an excercise, chose other reference categories on your own?
@@ -490,20 +623,20 @@ Now compare coefficients from each model with open conifer vs. Rock and Ice as t
 ## Manual Dummy (Indicator) Coding
 In practice I find working through the Design matrix coding of R confusing. Instead, I often just create my own 'manual' dummy variables in my data frame, sometimes even beforehand in excel (gasp!). These next commands manually creating 'dummy' variables that replace using the interaction expansion used ~ I.
 ```{r}
-wolfkde3$closedConif = ifelse(wolfkde3$habitatType == "Closed Conifer", 1, 0)
-wolfkde3$modConif = ifelse(wolfkde3$habitatType == "Moderate Conifer", 1, 0)
-wolfkde3$openConif = ifelse(wolfkde3$habitatType == "Open Conifer", 1, 0)
-wolfkde3$decid = ifelse(wolfkde3$habitatType == "Deciduous", 1, 0)
-wolfkde3$regen = ifelse(wolfkde3$habitatType == "Regen", 1, 0)
-wolfkde3$mixed = ifelse(wolfkde3$habitatType == "Mixed", 1, 0)
-wolfkde3$herb = ifelse(wolfkde3$habitatType == "Herbaceous", 1, 0)
-wolfkde3$shrub = ifelse(wolfkde3$habitatType == "Shrub", 1, 0)
-wolfkde3$water = ifelse(wolfkde3$habitatType == "Water", 1, 0)
-wolfkde3$rockIce = ifelse(wolfkde3$habitatType == "Rock-Ice", 1, 0)
-## note here I reclassified all burn = 1 
-wolfkde3$burn = ifelse(wolfkde3$habitatType == "Burn-Grassland", 1, ifelse(wolfkde3$habitatType == "Burn-Shrub", 1, ifelse(wolfkde3$habitatType == "Burn-Forest", 1,0 )))
-wolfkde3$alpineHerb = ifelse(wolfkde3$habitatType == "Alpine Herb", 1, 0)
-wolfkde3$alpineShrub = ifelse(wolfkde3$habitatType == "Alpine Shrub", 1, 0)
+wolfkde3$closedConif <- ifelse(wolfkde3$habitatType == "Closed Conifer", 1, 0)
+wolfkde3$modConif <- ifelse(wolfkde3$habitatType == "Moderate Conifer", 1, 0)
+wolfkde3$openConif <- ifelse(wolfkde3$habitatType == "Open Conifer", 1, 0)
+wolfkde3$decid <- ifelse(wolfkde3$habitatType == "Deciduous", 1, 0)
+wolfkde3$regen <- ifelse(wolfkde3$habitatType == "Regen", 1, 0)
+wolfkde3$mixed <- ifelse(wolfkde3$habitatType == "Mixed", 1, 0)
+wolfkde3$herb <- ifelse(wolfkde3$habitatType == "Herbaceous", 1, 0)
+wolfkde3$shrub <- ifelse(wolfkde3$habitatType == "Shrub", 1, 0)
+wolfkde3$water <- ifelse(wolfkde3$habitatType == "Water", 1, 0)
+wolfkde3$rockIce <- ifelse(wolfkde3$habitatType == "Rock-Ice", 1, 0)
+## note here I reclassified all burn <- 1 
+wolfkde3$burn <- ifelse(wolfkde3$habitatType == "Burn-Grassland", 1, ifelse(wolfkde3$habitatType == "Burn-Shrub", 1, ifelse(wolfkde3$habitatType == "Burn-Forest", 1,0 )))
+wolfkde3$alpineHerb <- ifelse(wolfkde3$habitatType == "Alpine Herb", 1, 0)
+wolfkde3$alpineShrub <- ifelse(wolfkde3$habitatType == "Alpine Shrub", 1, 0)
 
 head(wolfkde3)
 ```
@@ -511,20 +644,43 @@ Note now that the design matrix is manually set in the data.frame. This is ineff
 
 For example, here we can easily create a new 'alpine' variable by adding alpine herb and alpine shrub. 
 ```{r}
-wolfkde3$alpine = wolfkde3$alpineHerb + wolfkde3$alpineShrub
+wolfkde3$alpine <- wolfkde3$alpineHerb + wolfkde3$alpineShrub
 ```
 
 Refitting model with Open Conifer as the intercept and alpine/burn pooled
 ```{r}
-oc.intercept.model = glm(used~closedConif + modConif + decid+ regen+mixed+herb+water+rockIce+burn+alpine, data = wolfkde3, family = binomial(logit))
+oc.intercept.model <- glm(used~closedConif + modConif + decid + regen + mixed + herb + water + rockIce +shrub + burn + alpine,
+                          data = wolfkde3, 
+                          family = binomial(logit))
 summary(oc.intercept.model)
 
-### refitting model with just Alpine and Rock and Ice as the intercept
-rockintercept.alpine.model = glm(used~closedConif + openConif + modConif + decid+ regen+mixed+herb+water+burn+alpine, data = wolfkde3, family = binomial(logit))
+### refitting model with just Rock and Ice as the intercept
+rockintercept.alpine.model <- glm(used ~ closedConif + 
+                                    openConif +
+                                    modConif + 
+                                    decid +
+                                    regen + 
+                                    mixed +
+                                    herb +
+                                    water +
+                                    shrub +
+                                    burn +
+                                    alpine, 
+                                  data = wolfkde3,
+                                  family = binomial(logit))
 summary(rockintercept.alpine.model)
 
 ### refitting model manually dropping Decid and Regen - where do they no go?
-rock.alpine.regen.decid.intercept.model = glm(used~closedConif + openConif + modConif + mixed+herb+water+burn+alpine, data = wolfkde3, family = binomial(logit))
+rock.alpine.regen.decid.intercept.model <- glm(used ~ closedConif +
+                                                 openConif +
+                                                 modConif + 
+                                                 mixed +
+                                                 herb +
+                                                 water +
+                                                 burn +
+                                                 alpine, 
+                                               data = wolfkde3,
+                                               family = binomial(logit))
 summary(rock.alpine.regen.decid.intercept.model)
 ```
 
@@ -532,13 +688,14 @@ summary(rock.alpine.regen.decid.intercept.model)
 
 I adopt the code from section 2.0 above to pull out all the coefficients and SE's and put them in one long table
 ```{r}
-rockintercept.alpine.model.df <- data.frame(summary(rockintercept.alpine.model)$coefficients[,1:2])
-oc.intercept.model.df <- data.frame(summary(oc.intercept.model)$coefficients[,1:2])
+rockintercept.alpine.model.df <- data.frame(summary(rockintercept.alpine.model)$coefficients[, 1:2])
+oc.intercept.model.df <- data.frame(summary(oc.intercept.model)$coefficients[, 1:2])
 coef.table <- rbind(rockintercept.alpine.model.df,oc.intercept.model.df)
-coef.table$habitatType <- c(row.names((summary(rockintercept.alpine.model)$coefficients[,1:2])),row.names(summary(oc.intercept.model)$coefficients[,1:2]))
+coef.table$habitatType <- c(row.names((summary(rockintercept.alpine.model)$coefficients[, 1:2])), 
+                            row.names(summary(oc.intercept.model)$coefficients[, 1:2]))
 coef.table$habitatType[1] <- "rockIce"
-coef.table$habitatType[12] <- "openConif"
-coef.table$model <-c(rep("Open Conif Intercept",11),rep( "RockIce Intercept",11))
+coef.table$habitatType[13] <- "openConif"
+coef.table$model <- c(rep( "RockIce Intercept", 12), rep("Open Conif Intercept", 12))
 coef.table
 ```
 Now use this table to compare the ABSOLUTE differences say between burn and alpine in both models. In the oc.model the B coefficient for Burn = 2.47 and Alpine = -3.002 an absolute differences of 3.29. In the rock.model the B coefficient for Burn = 2.2 and Alpine is -1.086, an absolute difference of 3.29 -
@@ -547,15 +704,17 @@ the same! Why is this?
 
 Now lets make a figure of the Beta coefficients (you can figure out how to add SE's yourself :)
 ```{r}
-ggplot(coef.table, aes(x=habitatType, y=Estimate, colour=model)) + geom_point(size = 5) + theme(axis.text.x = element_text(angle = 90))
+ggplot(coef.table, aes(x = habitatType, y = Estimate, colour = model)) + 
+  geom_point(size = 5) +
+  theme(axis.text.x = element_text(angle = 90))
 ```
 This figure tells us that RELATIVELY nothing has changed, only where the coefficients are relative to the yAxis
 
 # Homework Excercises 
 
-I strongly consider you to work through these excercises for this landcover lab.  ESPECIALLY quesiton 4. 
+I strongly consider you to work through these exercises for this landcover lab.  ESPECIALLY question 4. 
 
-1.	What would be you’re a-priori hypothesis for this lab? In other words, based on previous literature, and previous analyses you’ve done, what landcover types would you expect wolves to select? In the discussion, answer whether the results of your study compare broadly well to previous studies (Oakleaf et al. 2006, Hebblewhite et al. 2005 – OIKOS), etc.??  How do you relate selection for landcover to previous results of selection for habitat suitability indices for ungulates? Report differences in landcover between packs as well .
+1.	What would be you’re a-priori hypothesis for this lab? In other words, based on previous literature, and previous analyses you’ve done, what landcover types would you expect wolves to select? In the discussion, answer whether the results of your study compare broadly well to previous studies (Oakleaf et al. 2006, Hebblewhite et al. 2005 – OIKOS), etc.??  How do you relate selection for landcover to previous results of selection for habitat suitability indices for ungulates? Report differences in landcover between packs as well.
 
 2.	What is your ‘best’ model for categorical habitat types? What are the effects of landcover type on wolves? Be sure to write the linear part of the logistic regression formula for the top model in the results, and for this lab, present the selection data in both tabular and categorical form.  
 
@@ -565,10 +724,29 @@ I strongly consider you to work through these excercises for this landcover lab.
 
 [hint, you have to go back and redo the landcovSelection2 table collapsing all 3 burn landcover categories together, and then run something like this]
 
-```
+```{r}
+# Still not right
+burn_apline <- data.frame(row.names = c("burn", "alpine"),
+                          avail = c(sum(landcovSelection2[3:5, "avail"]), sum(landcovSelection2[1:2, "avail"])),
+                          used = c(sum(landcovSelection2[3:5, "used"]), sum(landcovSelection2[1:2, "used"])),
+                          landcoverType = c("burn", "alpine"))
+
+burn_apline$pUse <- burn_apline$used /413 # sum(landcovSelection2$used) = 413
+
+burn_apline$pAvail <- burn_apline$avail /1996 # note 2000 because of censored cloud and NA's.;
+
+burn_apline$selection <- burn_apline$pUse / burn_apline$pAvail
+
+burn_apline$selectionN <- burn_apline$used / burn_apline$avail
+
+burn_apline$lnSelection <- log(burn_apline$selection)
+
+landcover_cond <- rbind(landcovSelection2[6:15,],
+                        burn_apline)
+
 coef.table
-landcovSelection2
-plot(landcovSelection2$selection, coef.table$Estimate)
+landcover_cond
+plot(landcover_cond$selection, coef.table$Estimate[13:24])
 ```
 ```{r eval=FALSE, include=FALSE}
 knitr::purl(input = "README.Rmd", output = "lab4.R", documentation = 1)
